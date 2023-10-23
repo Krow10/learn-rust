@@ -3,10 +3,10 @@ authors = ["Etienne Donneger"]
 description = "A TUI slot machine implementation"
 edition = "2021"
 license-file = "LICENSE"
-name = "slot_machine"
+name = "slot-machine"
 publish = false
 readme = "README.md"
-repository = "https://github.com/Krow10/learn-rust/slot_machine"
+repository = "https://github.com/Krow10/learn-rust/slot-machine"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
