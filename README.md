@@ -5,7 +5,7 @@ This repo holds the projects that I've used or developped in order to learn more
 ## Projects
 
 - [rustlings](https://rustlings.cool/): 🦀 Small exercises to get you used to reading and writing Rust code!
-- [slot_machine](slot_machine): a TUI implementation of a slot machine to learn about random number generators (and more!)
+- [slot-machine](slot-machine): a TUI implementation of a slot machine to learn about random number generators (and more!)
 
 ## Licenses
 

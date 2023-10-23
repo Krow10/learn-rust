@@ -1,4 +1,4 @@
-# slot_machine
+# slot-machine
 
 - Payout ratio
 	+ From 85% (low) to 98% (high) [2]
