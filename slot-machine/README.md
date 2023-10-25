@@ -55,6 +55,13 @@ This document holds the research done in order to implement the slot machine sim
 	+ Speed factor
 	+ Allow showing live stats
 		* Expected RTP, current RTP, EV, etc.
+		
+**What's been learned so far**
+- ~~Physical reels~~ (don't care, just use virtual ones)
+- Virtual reels dictates what you're going to show
+	+ Abstract the symbols even more using indices from a symbols array
+	+ If possible, try not to store the entire reels in memory (work with ranges ?)
+- Describe combos as bit masks
 
 ### Architecture
 
@@ -139,3 +146,4 @@ Each reel can thus be weighted differently. This is mostly used to create the *n
 7. https://easy.vegas/games/slots/how-they-work
 8. https://easy.vegas/games/slots/program
 9. https://wizardofodds.com/games/slots/atkins-diet/
+10. https://easy.vegas/games/slots/par_sheets/generic-1987.gif
