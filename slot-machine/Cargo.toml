@@ -10,5 +10,6 @@ repository = "https://github.com/Krow10/learn-rust/slot-machine"
 version = "0.1.0"
 
 [dependencies]
+itertools = "0.11.0"
 ndarray = "0.15.6"
 rand = "0.8.5"

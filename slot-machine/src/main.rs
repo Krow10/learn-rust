@@ -17,20 +17,25 @@ struct Paytable {
 }
 
 impl Paytable {
-    fn calculate_win(&self, spin: u64) -> Option<u64> {
+    fn get_table_entry(&self, spin: u64) -> Option<(u64, u64)> {
         let mut hash_vec: Vec<(&u64, &u64)> = self.table.iter().collect();
         // Order of bitmask is important so need to sort first (i.e. to check for triples of the same symbol before the any symbol payout)
         hash_vec.sort_by(|a, b| b.1.cmp(&a.1));
-        hash_vec
-            .iter()
-            .find_map(|(combo, pay)| {
-                if (*combo & spin) == spin {
-                    Some(*pay)
-                } else {
-                    None
-                }
-            })
-            .copied()
+        hash_vec.iter().find_map(|(combo, pay)| {
+            if (*combo & spin) == spin {
+                Some((**combo, **pay))
+            } else {
+                None
+            }
+        })
+    }
+
+    fn get_combo(&self, spin: u64) -> Option<u64> {
+        self.get_table_entry(spin).map(|(combo, _)| combo)
+    }
+
+    fn calculate_win(&self, spin: u64) -> Option<u64> {
+        self.get_table_entry(spin).map(|(_, win)| win)
     }
 }
 
@@ -55,6 +60,27 @@ fn create_combo(symbols: Vec<u64>) -> u64 {
 
 fn clear_screen() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // Clear screen control sequence
+}
+
+fn get_user_input() -> Option<String> {
+    let mut user_input = String::new();
+
+    io::stdin()
+        .read_line(&mut user_input)
+        .expect("Failed to read user input");
+
+    Some(user_input)
+}
+
+#[allow(dead_code)]
+fn format_binary(n: u64) -> String {
+    format!(
+        "{:0>8b} {:0>8b} {:0>8b} {:0>8b}",
+        (n & 4278190080) >> 24,
+        (n & 16711680) >> 16,
+        (n & 65280) >> 8,
+        (n & 255)
+    )
 }
 
 fn main() {
@@ -117,23 +143,23 @@ fn main() {
         (REEL 1) (REEL 2) (REEL 3)
         00000000 00000000 00000000
 
-        JACKPOT  BLANK    BLANK
-        00010000 00000001 00000001 -> 2
+        JACKPOT  ANYOTHER ANYOTHER
+        00010000 00001111 00001111 -> 2
 
-        BLANK    JACKPOT  BLANK
-        00000001 00010000 00000001 -> 2
+        ANYOTHER JACKPOT  ANYOTHER
+        00001111 00010000 00001111 -> 2
 
-        BLANK    BLANK    JACKPOT
-        00000001 00000001 00010000 -> 2
+        ANYOTHER ANYOTHER JACKPOT
+        00001111 00001111 00010000 -> 2
 
-        JACKPOT  JACKPOT    BLANK
-        00010000 00010000 00000001 -> 5
+        JACKPOT  JACKPOT  ANYOTHER
+        00010000 00010000 00001111 -> 5
 
-        JACKPOT  BLANK    JACKPOT
-        00010000 00000001 00010000 -> 5
+        JACKPOT  ANYOTHER JACKPOT
+        00010000 00001111 00010000 -> 5
 
-        BLANK    JACKPOT  JACKPOT
-        00000001 00010000 00010000 -> 5
+        ANYOTHER JACKPOT  JACKPOT
+        00001111 00010000 00010000 -> 5
 
         AB       AB       AB
         00011110 00011110 00011110 -> 5
@@ -151,33 +177,38 @@ fn main() {
         00010000 00010000 00010000 -> 400
     */
 
+    let anyother = *symbol_mapping.get(BLANK).unwrap()
+        | *symbol_mapping.get(BAR).unwrap()
+        | *symbol_mapping.get(BAR5).unwrap()
+        | *symbol_mapping.get(BAR7).unwrap();
+
     let c1: u64 = create_combo(vec![
         *symbol_mapping.get(JACKPOT).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
+        anyother,
     ]);
     let c2: u64 = create_combo(vec![
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
         *symbol_mapping.get(JACKPOT).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
     ]);
     let c3: u64 = create_combo(vec![
-        *symbol_mapping.get(BLANK).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
+        anyother,
         *symbol_mapping.get(JACKPOT).unwrap(),
     ]);
     let c4: u64 = create_combo(vec![
         *symbol_mapping.get(JACKPOT).unwrap(),
         *symbol_mapping.get(JACKPOT).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
     ]);
     let c5: u64 = create_combo(vec![
         *symbol_mapping.get(JACKPOT).unwrap(),
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
         *symbol_mapping.get(JACKPOT).unwrap(),
     ]);
     let c6: u64 = create_combo(vec![
-        *symbol_mapping.get(BLANK).unwrap(),
+        anyother,
         *symbol_mapping.get(JACKPOT).unwrap(),
         *symbol_mapping.get(JACKPOT).unwrap(),
     ]);
@@ -236,7 +267,142 @@ fn main() {
 
     let mut balance = 100u64;
 
+    const N_SIMULATIONS: u64 = 10u64.pow(6);
+    let mut simulated_payout_ratio = 0.0f64;
+    let mut draws = HashMap::<Vec<usize>, u64>::new();
+
+    println!(
+        "{:-<5} Starting {} spin simulations {:-<5}",
+        "", N_SIMULATIONS, ""
+    );
+    for _i in 1..N_SIMULATIONS {
+        let rng_iter = rand::thread_rng().sample_iter(rand::distributions::Uniform::from(
+            0..=virtual_reels.len() - 1, // Account for indexes, start at 0
+        ));
+        let rng_result: Vec<usize> = rng_iter.take(3).collect(); // In real-life applications the numbers are being constantly re-generated and picked just on input
+        let spin_result: Vec<usize> = rng_result
+            .iter()
+            .enumerate()
+            .map(|(reel, rng)| expanded_reels[(reel, *rng)])
+            .collect();
+        let win = paytable
+            .calculate_win(create_combo(
+                spin_result.iter().map(|x| *x as u64).collect(),
+            ))
+            .unwrap_or(0);
+
+        simulated_payout_ratio += win as f64;
+        draws.entry(spin_result.clone()).or_insert(0);
+        draws.entry(spin_result).and_modify(|e| *e += 1);
+        //print!("Progress: {}/{}\r", i, N_SIMULATIONS);
+    }
+
     clear_screen();
+    println!(
+        "{:-<5} {} spin simulations finished {:-<5}",
+        "", N_SIMULATIONS, ""
+    );
+    println!("Target payout ratio: 0.7608");
+    println!(
+        "Final simulated payout ratio: {}\n",
+        simulated_payout_ratio / N_SIMULATIONS as f64
+    );
+
+    println!(
+        "{:<9} {:<12} {:<12} {:<12}",
+        "Combo", "Observed", "Expected", "Difference"
+    );
+    println!(
+        "{:-<5}{:5}{:-<8}{:5}{:-<8}{:5}{:-<10}",
+        "", "", "", "", "", "", ""
+    );
+
+    let mut grouped_count = HashMap::<&str, f64>::from([
+        ("JW XX XX", 0.0),
+        ("XX JW XX", 0.0),
+        ("XX XX JW", 0.0),
+        ("JW JW XX", 0.0),
+        ("JW XX JW", 0.0),
+        ("XX JW JW", 0.0),
+        ("AB AB AB", 0.0),
+        ("1J 1J 1J", 0.0),
+        ("5J 5J 5J", 0.0),
+        ("7J 7J 7J", 0.0),
+        ("JW JW JW", 0.0),
+    ]);
+    draws
+        .iter()
+        .map(|(draw, count)| {
+            (
+                paytable
+                    .get_combo(create_combo(
+                        draw.iter()
+                            .map(|v| {
+                                symbol_mapping
+                                    .iter()
+                                    .find(|(_, value)| **value == (*v as u64))
+                                    .map_or(0, |(_, value)| *value)
+                            })
+                            .collect(),
+                    ))
+                    .map_or("?? ?? ??", |c| match c {
+                        x if x == c1 => "JW XX XX",
+                        x if x == c2 => "XX JW XX",
+                        x if x == c3 => "XX XX JW",
+                        x if x == c4 => "JW JW XX",
+                        x if x == c5 => "JW XX JW",
+                        x if x == c6 => "XX JW JW",
+                        x if x == c7 => "AB AB AB",
+                        x if x == c8 => "1J 1J 1J",
+                        x if x == c9 => "5J 5J 5J",
+                        x if x == c10 => "7J 7J 7J",
+                        x if x == c11 => "JW JW JW",
+                        _ => "?? ?? ??",
+                    }),
+                *count as f64 / N_SIMULATIONS as f64,
+            )
+        })
+        .for_each(|(s, c)| {
+            grouped_count.entry(s).and_modify(|v| *v += c);
+        });
+
+    let expected_prob: HashMap<&str, f64> = HashMap::from([
+        ("JW XX XX", 0.025665283203125),
+        ("XX JW XX", 0.025054931640625),
+        ("XX XX JW", 0.024200439453125),
+        ("JW JW XX", 0.000640869140625),
+        ("JW XX JW", 0.000579833984375),
+        ("XX JW JW", 0.000518798828125),
+        ("AB AB AB", 0.045135498046875),
+        ("1J 1J 1J", 0.017059326171875),
+        ("5J 5J 5J", 0.003021240234375),
+        ("7J 7J 7J", 0.000213623046875),
+        ("JW JW JW", 0.000030517578125),
+    ]);
+    grouped_count.iter().for_each(|(s, v)| {
+        println!(
+            "{:<9} {:<10.10} {:<10.10} {:+<10.10}",
+            s,
+            v,
+            expected_prob[s],
+            v - expected_prob[s]
+        )
+    });
+
+    let sums: Vec<f64> = [expected_prob, grouped_count]
+        .iter()
+        .map(|h| h.values().sum())
+        .collect();
+
+    println!("{:-<51}", "");
+    println!("{:<9} {:<10.10} {:<10.10}", "Sum", sums[0], sums[1]);
+
+    println!("\n{}", paytable);
+
+    println!("\nEnter any key to start the game...\n");
+    get_user_input();
+    clear_screen();
+
     loop {
         let rng_iter = rand::thread_rng().sample_iter(rand::distributions::Uniform::from(
             0..=virtual_reels.len() - 1, // Account for indexes, start at 0
@@ -257,11 +423,7 @@ fn main() {
             println!("Your balance is : {:?} credits", balance);
             println!("Enter any input to start a spin! (1 credit)");
 
-            let mut user_input = String::new();
-
-            io::stdin()
-                .read_line(&mut user_input)
-                .expect("Failed to read user input");
+            get_user_input();
             clear_screen();
         } else {
             println!("Balance is empty :(");
