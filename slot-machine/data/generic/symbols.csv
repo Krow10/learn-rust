@@ -1,0 +1,11 @@
+Symbol,Ref
+BL,BL
+1B,1B
+5B,5B
+7B,7B
+JW,JW
+XX,!JW
+AB,1B|5B|7B|JW
+1J,1B|JW
+5J,5B|JW
+7J,7B|JW
