@@ -1,0 +1,12 @@
+Combo,"Pay 1","Pay 2"
+"JW XX XX",2,4
+"XX JW XX",2,4
+"XX XX JW",2,4
+"JW JW XX",5,10
+"JW XX JW",5,10
+"XX JW JW",5,10
+"AB AB AB",5,10
+"1J 1J 1J",10,25
+"5J 5J 5J",50,125
+"7J 7J 7J",200,500
+"JW JW JW",400,1000
