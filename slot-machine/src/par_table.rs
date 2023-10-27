@@ -9,6 +9,49 @@ use crate::utils::format_binary;
 type Symbol = u64;
 type Combo = Vec<Symbol>;
 
+pub struct ParTableFiles {
+    reels_file: String,
+    paytable_file: String,
+    symbols_file: String,
+}
+
+impl TryFrom<Vec<String>> for ParTableFiles {
+    type Error = ();
+    fn try_from(_a: Vec<String>) -> Result<ParTableFiles, ()> {
+        let mut ptf = ParTableFiles::default();
+        let mut n_loaded = 0;
+
+        for path in _a {
+            if path.contains("reels") {
+                ptf.reels_file = path.to_string();
+                n_loaded += 1;
+            } else if path.contains("paytable") {
+                ptf.paytable_file = path.to_string();
+                n_loaded += 1;
+            } else if path.contains("symbols") {
+                ptf.symbols_file = path.to_string();
+                n_loaded += 1;
+            }
+        }
+
+        if n_loaded < 3 {
+            Err(())
+        } else {
+            Ok(ptf)
+        }
+    }
+}
+
+impl ParTableFiles {
+    fn default() -> ParTableFiles {
+        ParTableFiles {
+            reels_file: "".to_string(),
+            paytable_file: "".to_string(),
+            symbols_file: "".to_string(),
+        }
+    }
+}
+
 pub struct ParTable {
     pub symbol_num_mapping: HashMap<Symbol, String>,
     pub symbol_str_mapping: HashMap<String, Symbol>,
@@ -108,13 +151,13 @@ impl ParTable {
         Ok(())
     }
 
-    pub fn parse_from_csv(&mut self, files: [&str; 3]) -> Result<(), Box<dyn Error>> {
-        self.parse_symbols(files[0])?;
-        self.parse_paytable(files[1])?;
-        self.parse_reels(files[2])
+    pub fn parse_from_csv(&mut self, files: ParTableFiles) -> Result<(), Box<dyn Error>> {
+        self.parse_symbols(files.symbols_file.as_str())?;
+        self.parse_paytable(files.paytable_file.as_str())?;
+        self.parse_reels(files.reels_file.as_str())
     }
 
-    pub fn calculate_win(&self, spin: Combo, coins: usize) -> Option<(Combo, u64)> {
+    pub fn calculate_win(&self, spin: Combo, bet: usize) -> Option<(Combo, u64)> {
         let mut sorted_combos: Vec<&Combo> = self.paytable.keys().collect();
         sorted_combos.sort_by_key(|c| self.paytable.get(*c).unwrap());
 
@@ -125,7 +168,7 @@ impl ParTable {
         }) {
             Some((
                 win_combo.to_vec(),
-                *self.paytable.get(&**win_combo).unwrap().get(coins).unwrap(),
+                *self.paytable.get(&**win_combo).unwrap().get(bet).unwrap(),
             ))
         } else {
             None
@@ -151,7 +194,7 @@ impl Display for ParTable {
             .expect("Cannot format ParTable");
         });
 
-        writeln!(f, "{:=<47}", "").unwrap();
+        writeln!(f, "{:=<51}", "").unwrap();
 
         let mut sorted_paytable: Vec<(&Combo, &Vec<u64>)> = self.paytable.iter().collect();
         writeln!(f, "{:<18} {:<3}", "Combo", "Pays")?;
@@ -176,7 +219,7 @@ impl Display for ParTable {
             writeln!(f, "").unwrap();
         });
 
-        writeln!(f, "{:=<47}", "").unwrap();
+        writeln!(f, "{:=<51}", "").unwrap();
 
         (1..=self.reels[0].len()).for_each(|x| write!(f, "Reel {:<5} ", x).unwrap());
         writeln!(f, "").unwrap();
@@ -190,6 +233,39 @@ impl Display for ParTable {
             writeln!(f, "").unwrap();
         });
 
+        writeln!(f, "{:=<51}", "").unwrap();
+
+        write!(f, "Symbol ").unwrap();
+        (1..=self.reels[0].len()).for_each(|x| write!(f, "Count(Reel {:1}) ", x).unwrap());
+        writeln!(f, "").unwrap();
+        write!(f, "{:-<6} ", "").unwrap();
+        (1..=self.reels[0].len()).for_each(|_| write!(f, "{:-<13}{:<1}", "", "").unwrap());
+        writeln!(f, "").unwrap();
+
+        let counts: HashMap<u64, Vec<u64>> =
+            HashMap::from_iter(sorted_symbols.iter().map(|(symbol, _)| {
+                let mut c = vec![0; self.reels[0].len()];
+
+                self.reels[0].iter().enumerate().for_each(|(i, _)| {
+                    c[i] = self
+                        .reels
+                        .iter()
+                        .map(|r| r[i])
+                        .filter(|x| *x == **symbol)
+                        .fold(0u64, |acc, _| acc + 1);
+                });
+
+                (**symbol, c)
+            }));
+
+        sorted_symbols.iter().for_each(|(s, _)| {
+            write!(f, "{:<7}", self.symbol_num_mapping.get(s).unwrap()).unwrap();
+            self.reels[0].iter().enumerate().for_each(|(i, _)| {
+                write!(f, "{:^13}{:<1}", counts.get(s).unwrap()[i], "").unwrap();
+            });
+            writeln!(f, "").unwrap();
+        });
+
         Ok(())
     }
 }
@@ -198,7 +274,7 @@ impl Display for ParTable {
 //struct SymbolNotFoundError {}
 
 #[derive(Debug)]
-enum ParTableParseError {
+pub enum ParTableParseError {
     TooMuchSymbolsError,
     SymbolNotFoundError,
 }

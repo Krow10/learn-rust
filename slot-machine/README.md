@@ -78,7 +78,9 @@ Client / server could make it so that the frontend display be independent of all
 	+ (Bonus) Identity validation / authentication
 - Communication service / protocol (online)
 	+ Receive client info and parse / validate
+		* Machine to play
 		* Bet amount vs. current balance
+		* Pay lines
 	+ Return spin result
 		* Total winnings (calculate from paylines, bet amount, etc.)
 		* Payload: stops, winning lines, total winnings
@@ -92,6 +94,17 @@ Client / server could make it so that the frontend display be independent of all
 - Communication service (online)
 	+ Connect to server and send command to spin
 	+ Receive payload
+	
+#### Communication protocol
+
+Using UNIX sockets (`/tmp/slot_machine.sock`).
+
+**Client → Server**
+`PLAY {GAME} {BET}` select a game to play with the payouts sized with the bet.
+
+**Server → Client**
+`SPIN {WIN} {BALANCE} {REEL 1} {REEL 2} ... {REEL N}` returns the current balance and win amount based on the rolled combination.
+`ERRX {MSG}` returns an error message (e.g. insufficient balance).
 
 ### How to map virtual reel to physical / display reel
 
