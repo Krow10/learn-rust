@@ -2,6 +2,43 @@
 
 This document holds the research done in order to implement the slot machine simulation. It is presented in note-taking format and is subjected to frequent changes.
 
+## How to play
+
+1. Clone the repo
+```
+$ git clone git@github.com:Krow10/learn-rust.git
+```
+2. Cd to `slot-machine` directory
+```
+$ cd learn-rust/slot-machine
+```
+3. Run the daemon
+```
+$ cargo run --bin daemon
+```
+4. In another terminal, cd again to `learn-rust/slot-machine` and run the client
+```
+$ cargo run --bin client
+```
+5. Select a game
+```
+[x] Select a game:
+1. blaze7                                                                 
+2. generic
+$ 
+```
+6. Enter a fixed bet amount per spin, available are `[1, 2]` for **Generic** and `[1, 2, 3]` for **Blazing7** (this affects the payouts and return-to-player (RTP), see the `paytable.csv` files)
+```
+Enter bet amount:
+$ 
+```
+
+7. Start playing !
+
+> **Note**
+>
+> You will need a terminal font capable of displaying emojis. You can use the [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) family that covers most of them.
+
 ## Research
 
 - Payout ratio
@@ -78,7 +115,9 @@ Client / server could make it so that the frontend display be independent of all
 	+ (Bonus) Identity validation / authentication
 - Communication service / protocol (online)
 	+ Receive client info and parse / validate
+		* Machine to play
 		* Bet amount vs. current balance
+		* Pay lines
 	+ Return spin result
 		* Total winnings (calculate from paylines, bet amount, etc.)
 		* Payload: stops, winning lines, total winnings
@@ -92,6 +131,17 @@ Client / server could make it so that the frontend display be independent of all
 - Communication service (online)
 	+ Connect to server and send command to spin
 	+ Receive payload
+	
+#### Communication protocol
+
+Using UNIX sockets (`/tmp/slot_machine.sock`).
+
+**Client → Server**
+`PLAY {GAME} {BET}` select a game to play with the payouts sized with the bet.
+
+**Server → Client**
+`SPIN {WIN} {BALANCE} {REEL 1} {REEL 2} ... {REEL N}` returns the current balance and win amount based on the rolled combination.
+`ERRX {MSG}` returns an error message (e.g. insufficient balance).
 
 ### How to map virtual reel to physical / display reel
 
