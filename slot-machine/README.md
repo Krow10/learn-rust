@@ -64,12 +64,12 @@ $
 		  appearance of having only 3–5 reels
 		* The display reel is completely separate from the virtual reel that is spun: the number of symbol and their order on the display is purely
 		  for visual reference and aesthetics. It only requires for all the symbols from the virtual reel to be present (see [7] for example) as they are
-		  weighted differently that how they appear in display (although from an implementation POV you would assign each physical stops to a certain range
+		  weighted differently than how they appear in display (although from an implementation POV you would assign each physical stops to a certain range
 		  even though they might refer to the same symbol). 
 - Paylines
 	+ The more, the better (~100)
 	  [4]
-	  > One of the tricks that casino game designers learned, was that if you were winning on one payline you didn't pay attention to the fact that you were losing on two of the other ones
+	  > One of the tricks that casino game designers learned, was that if you were winning on one payline you didn't pay attention to the fact that you were losing on two of the other ones.
 - Design [4]
 	+ Make it look like a physical reel → Players trust them
 		* Curved display
