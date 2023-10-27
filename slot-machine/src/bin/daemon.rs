@@ -12,10 +12,10 @@ use ctrlc;
 use itertools::Itertools;
 use rand::Rng;
 use slot_machine::par_table::{ParTable, ParTableFiles};
+use slot_machine::{MAX_BYTES_READ, SOCKET_PATH};
 
-const MAX_BYTES_READ: u64 = 4096;
 const RATE_LIMIT_MS: u64 = 300;
-const START_BALANCE: i64 = 10;
+const START_BALANCE: i64 = 100;
 
 fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTable>>) {
     println!("Accepted client: {:?}", stream);
@@ -41,7 +41,7 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
             match &buf[..4] {
                 "PLAY" => {
                     if let Some((slot_machine, bet)) = buf[5..].split_once(' ') {
-                        let bet = bet.parse::<usize>().unwrap_or(0);
+                        let bet = bet.parse::<usize>().unwrap_or(1); // Pick lowest bet on parse error
                         if let Some(table) = par_tables.get(slot_machine) {
                             println!("Playing {} size bet on {}", bet, slot_machine);
                             let rng_iter =
@@ -60,7 +60,7 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
 
                             balance += win as i64 - bet as i64;
 
-                            if balance <= 0 {
+                            if balance < 0 {
                                 balance = 0;
                                 writeln!(
                                     stream,
@@ -135,8 +135,6 @@ fn main() {
         par_tables.len(),
         par_tables.keys()
     );
-
-    const SOCKET_PATH: &str = "/tmp/slot_machine.sock";
 
     let _ = std::fs::remove_file(SOCKET_PATH);
     println!("Starting new listening socket on \"{}\"...", SOCKET_PATH);

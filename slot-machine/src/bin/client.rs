@@ -3,7 +3,10 @@ use std::fs;
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
 
-use slot_machine::utils::{clear_screen, get_user_input};
+use slot_machine::{
+    utils::{clear_screen, get_user_input},
+    MAX_BYTES_READ, SOCKET_PATH,
+};
 
 fn main() {
     let paths: Vec<String> = fs::read_dir("./data")
@@ -31,9 +34,9 @@ fn main() {
     println!("Enter bet amount:");
     let bet = get_user_input().unwrap().parse::<usize>().unwrap();
 
-    let mut stream = UnixStream::connect("/tmp/slot_machine.sock").unwrap();
+    let mut stream = UnixStream::connect(SOCKET_PATH).unwrap();
     let reader = stream.try_clone().unwrap();
-    let mut reader = std::io::BufReader::new(reader).take(4096);
+    let mut reader = std::io::BufReader::new(reader).take(MAX_BYTES_READ);
 
     loop {
         println!("Enter any input to start a spin!");
