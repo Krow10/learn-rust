@@ -1,52 +1,52 @@
 [
 	{
 		"name": "classic_seven",
-		"path": "/home/user/Downloads/seven.png",
+		"path": "./data/symbols/seven.png",
 		"luma_threshold": 50,
 		"color": "#f94144"
 	},
 	{
 		"name": "lemon",
-		"path": "/home/user/Downloads/lemon.png",
+		"path": "./data/symbols/lemon.png",
 		"luma_threshold": 10,
 		"color": "#43aa8b"
 	},
 	{
 		"name": "bar",
-		"path": "/home/user/Downloads/bar.png",
+		"path": "./data/symbols/bar.png",
 		"luma_threshold": 150
 	},
 	{
 		"name": "bar2",
-		"path": "/home/user/Downloads/bar2.png",
+		"path": "./data/symbols/bar2.png",
 		"luma_threshold": 150
 	},
 	{
 		"name": "bar3",
-		"path": "/home/user/Downloads/bar3.png",
+		"path": "./data/symbols/bar3.png",
 		"luma_threshold": 1
 	},
 	{
 		"name": "cherry",
-		"path": "/home/user/Downloads/cherry.png",
+		"path": "./data/symbols/cherry.png",
 		"luma_threshold": 150,
 		"color": "#f15bb5"
 	},
 	{
 		"name": "banana",
-		"path": "/home/user/Downloads/banana.png",
+		"path": "./data/symbols/banana.png",
 		"luma_threshold": 25,
 		"color": "LightYellow"
 	},
 	{
 		"name": "watermelon",
-		"path": "/home/user/Downloads/watermelon.png",
+		"path": "./data/symbols/watermelon.png",
 		"luma_threshold": 25,
 		"color": "#90be6d"
 	},
 	{
 		"name": "bell",
-		"path": "/home/user/Downloads/bell.png",
+		"path": "./data/symbols/bell.png",
 		"luma_threshold": 25,
 		"color": "#ffd60a"
 	}
