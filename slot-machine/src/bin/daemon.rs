@@ -12,7 +12,7 @@ use ctrlc;
 use itertools::Itertools;
 use rand::Rng;
 use slot_machine::par_table::{ParTable, ParTableFiles};
-use slot_machine::{MAX_BYTES_READ, SOCKET_PATH};
+use slot_machine::{GAMES_FOLDER, MAX_BYTES_READ, SOCKET_PATH};
 
 const RATE_LIMIT_MS: u64 = 300;
 const START_BALANCE: i64 = 100;
@@ -107,7 +107,7 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
 }
 
 fn main() {
-    let paths = fs::read_dir("./data").unwrap();
+    let paths = fs::read_dir(GAMES_FOLDER).unwrap();
     let mut par_tables: HashMap<String, ParTable> = HashMap::new();
 
     for path in paths {

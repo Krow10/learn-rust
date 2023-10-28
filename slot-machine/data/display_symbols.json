@@ -1,0 +1,53 @@
+[
+	{
+		"name": "classic_seven",
+		"path": "./data/symbols/seven.png",
+		"luma_threshold": 50,
+		"color": "#f94144"
+	},
+	{
+		"name": "lemon",
+		"path": "./data/symbols/lemon.png",
+		"luma_threshold": 10,
+		"color": "#43aa8b"
+	},
+	{
+		"name": "bar",
+		"path": "./data/symbols/bar.png",
+		"luma_threshold": 150
+	},
+	{
+		"name": "bar2",
+		"path": "./data/symbols/bar2.png",
+		"luma_threshold": 150
+	},
+	{
+		"name": "bar3",
+		"path": "./data/symbols/bar3.png",
+		"luma_threshold": 1
+	},
+	{
+		"name": "cherry",
+		"path": "./data/symbols/cherry.png",
+		"luma_threshold": 150,
+		"color": "#f15bb5"
+	},
+	{
+		"name": "banana",
+		"path": "./data/symbols/banana.png",
+		"luma_threshold": 25,
+		"color": "LightYellow"
+	},
+	{
+		"name": "watermelon",
+		"path": "./data/symbols/watermelon.png",
+		"luma_threshold": 25,
+		"color": "#90be6d"
+	},
+	{
+		"name": "bell",
+		"path": "./data/symbols/bell.png",
+		"luma_threshold": 25,
+		"color": "#ffd60a"
+	}
+]
