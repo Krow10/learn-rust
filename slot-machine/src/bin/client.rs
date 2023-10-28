@@ -1,16 +1,17 @@
-use std::collections::HashMap;
 use std::fs;
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
+use std::{collections::HashMap, path::Path};
 
 use slot_machine::{
     utils::{clear_screen, get_user_input},
-    MAX_BYTES_READ, SOCKET_PATH,
+    GAMES_FOLDER, MAX_BYTES_READ, SOCKET_PATH,
 };
 
 fn main() {
-    let paths: Vec<String> = fs::read_dir("./data")
+    let paths: Vec<String> = fs::read_dir(GAMES_FOLDER)
         .unwrap()
+        .filter(|p| p.as_ref().unwrap().metadata().unwrap().is_dir())
         .map(|p| p.unwrap().file_name().into_string().unwrap())
         .collect();
 
@@ -23,7 +24,12 @@ fn main() {
     println!("[+] Playing \"{}\" !", game_choice);
 
     println!("[*] Loading game symbols...");
-    let mut rdr = csv::Reader::from_path(format!("./data/{}/display.csv", game_choice)).unwrap();
+    let mut rdr = csv::Reader::from_path(
+        Path::new(GAMES_FOLDER)
+            .join(game_choice)
+            .join("display.csv"),
+    )
+    .unwrap();
     let symbols_mapping: HashMap<String, String> = HashMap::from_iter(rdr.deserialize().map(|r| {
         let (symbol, display): (String, String) = r.unwrap();
         (symbol, display)
