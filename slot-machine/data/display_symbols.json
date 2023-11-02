@@ -49,5 +49,11 @@
 		"path": "./data/symbols/bell.png",
 		"luma_threshold": 25,
 		"color": "#ffd60a"
+	},
+	{
+		"name": "blank",
+		"path": "./data/symbols/blank.png",
+		"luma_threshold": 25,
+		"color": "#ffffff"
 	}
 ]
