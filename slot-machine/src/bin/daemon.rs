@@ -81,15 +81,14 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
                             println!("\nBalance: {:+}", balance);
                             println!("{:-<20}", "");
 
+                            println!("Sending {:?}", rng_result);
+
                             writeln!(
                                 stream,
                                 "SPIN {} {} {}",
                                 win,
                                 balance,
-                                spin_result
-                                    .iter()
-                                    .map(|x| { table.symbol_num_mapping.get(x).unwrap() })
-                                    .join(" ")
+                                rng_result.iter().join(" ")
                             )
                             .expect("Could not write to client");
                             stream.flush().expect("Could not flush");

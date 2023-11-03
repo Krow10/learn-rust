@@ -16,7 +16,7 @@ $ cd learn-rust/slot-machine
 ```
 $ cargo run --bin daemon
 ```
-4. In another terminal, cd again to `learn-rust/slot-machine` and run the client
+4. In another terminal, `cd` again to `learn-rust/slot-machine` and run the client
 ```
 $ cargo run --bin client
 ```
@@ -37,7 +37,7 @@ $
 
 > **Note**
 >
-> You will need a terminal font capable of displaying emojis. You can use the [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) family that covers most of them.
+> You will need a terminal font capable of displaying emojis. You can use the [`Noto Emoji`](https://fonts.google.com/noto/specimen/Noto+Emoji) family that covers most of them.
 
 ## Research
 
@@ -99,6 +99,11 @@ $
 	+ Abstract the symbols even more using indices from a symbols array
 	+ If possible, try not to store the entire reels in memory (work with ranges ?)
 - Describe combos as bit masks
+
+### UI
+
+- Single payline with **curved** display option (allows seeing the symbols above and below the middle payline)
+- Give a window (Height x Width) that display the symbols (e.g. 3x5 for a five reels machine with multiple paylines)
 
 ### Architecture
 
