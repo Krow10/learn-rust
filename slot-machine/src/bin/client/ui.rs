@@ -56,18 +56,14 @@ pub fn render(state: &State, frame: &mut Frame) {
                     display_ratio * area.width as f64 / img_w,
                     display_ratio * area.height as f64 / img_h,
                 );
-                let center_shift = (
-                    if align_center {
-                        (1.0 - display_ratio) * area.width as f64 / 2.0
-                    } else {
-                        0.0
-                    },
-                    if align_center {
-                        -(1.0 - display_ratio) * area.height as f64 / 2.0
-                    } else {
-                        0.0
-                    },
-                );
+                let center_shift = if align_center {
+                    (
+                        (1.0 - display_ratio) * area.width as f64 / 2.0,
+                        -(1.0 - display_ratio) * area.height as f64 / 2.0,
+                    )
+                } else {
+                    (0.0, 0.0)
+                };
 
                 let const_x = x + center_shift.0;
                 let const_y = y + area.height as f64 + center_shift.1;
@@ -164,8 +160,8 @@ pub fn render(state: &State, frame: &mut Frame) {
                     ..info_text_option.clone()
                 },
                 enable_text_scaling: true,
+                align_center: true,
             },
-            //_styled_text_widget_factory(0.0, 0.0, String::from(format!("Win : {:?}", state.win))),
             *info_layout.get(k).unwrap(),
         );
     }
@@ -175,6 +171,8 @@ pub fn render(state: &State, frame: &mut Frame) {
 pub struct CFontTextWidget {
     options: Options,
     enable_text_scaling: bool,
+    // TODO: Support all align enum values from CFonts
+    align_center: bool,
 }
 
 impl CFontTextWidget {
@@ -216,10 +214,14 @@ impl Widget for CFontTextWidget {
         stylized_text.iter().enumerate().for_each(|(j, s)| {
             let lines = s.replace("\n", "").as_bytes().into_text().unwrap().lines;
             for l in lines {
-                let center_shift = (
-                    (area.width.saturating_sub(l.spans.len() as u16)) / 2,
-                    (area.height.saturating_sub(1).saturating_sub(text_height)) / 2,
-                );
+                let center_shift = if self.align_center {
+                    (
+                        (area.width.saturating_sub(l.spans.len() as u16)) / 2,
+                        (area.height.saturating_sub(1).saturating_sub(text_height)) / 2,
+                    )
+                } else {
+                    (0, 0)
+                };
 
                 buf.set_line(
                     area.left() + center_shift.0,

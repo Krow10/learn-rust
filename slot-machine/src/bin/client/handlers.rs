@@ -1,5 +1,5 @@
 use std::{
-    io::{BufRead, Read, Write},
+    io::{BufRead, Read},
     os::unix::net::UnixStream,
     sync::mpsc,
     thread,
@@ -10,6 +10,7 @@ use anyhow::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use slot_machine::{
     protocol::{ClientCommand, ServerResponse},
+    utils::send_socket_message,
     MAX_BYTES_READ,
 };
 
@@ -138,13 +139,9 @@ impl StreamHandler {
         Ok(self.receiver.try_recv().unwrap_or(Stream::Noop))
     }
 
-    fn send_message(&mut self, message: String) {
-        writeln!(self.stream, "{}", message).expect("Could not send message to server");
-        self.stream.flush().expect("Could not flush");
-    }
-
     pub fn send_spin_message(&mut self, game: String, bet: u64) {
-        self.send_message(
+        send_socket_message(
+            &mut self.stream,
             serde_json::to_string(&ClientCommand::Play {
                 game,
                 bet: bet.saturating_sub(1) as usize,
@@ -154,6 +151,9 @@ impl StreamHandler {
     }
 
     pub fn send_balance_message(&mut self) {
-        self.send_message(serde_json::to_string(&ClientCommand::Balance).unwrap());
+        send_socket_message(
+            &mut self.stream,
+            serde_json::to_string(&ClientCommand::Balance).unwrap(),
+        );
     }
 }

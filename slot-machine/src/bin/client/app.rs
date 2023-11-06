@@ -96,12 +96,14 @@ pub struct App {
     pub events: EventHandler,
     pub client: StreamHandler,
     pub should_quit: bool,
+    // TODO: Move to state and display the name
     pub game: String,
     pub state: State,
 }
 
 impl App {
     pub fn render_tick(&mut self) {
+        // TODO: Can compute FPS here
         update_animations(self);
     }
 

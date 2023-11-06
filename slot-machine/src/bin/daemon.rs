@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Read};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -13,6 +13,7 @@ use itertools::Itertools;
 use rand::Rng;
 use slot_machine::par_table::{ParTable, ParTableFiles};
 use slot_machine::protocol::{ClientCommand, ServerResponse};
+use slot_machine::utils::send_socket_message;
 use slot_machine::{GAMES_FOLDER, MAX_BYTES_READ, SOCKET_PATH};
 
 const RATE_LIMIT_MS: u64 = 300;
@@ -40,31 +41,25 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
             println!("Parsed command: {:?}", client_command);
             match client_command {
                 ClientCommand::Balance => {
-                    writeln!(
-                        stream,
-                        "{}",
+                    send_socket_message(
+                        &mut stream,
                         serde_json::to_string(&ServerResponse::Balance {
-                            balance: balance as u64
+                            balance: balance as u64,
                         })
-                        .unwrap()
-                    )
-                    .expect("Could not write to client");
-                    stream.flush().expect("Could not flush");
+                        .unwrap(),
+                    );
                 }
                 ClientCommand::Play { game, bet } => {
                     if balance <= 0 {
                         balance = 0;
-                        writeln!(
-                            stream,
-                            "{}",
+                        send_socket_message(
+                            &mut stream,
                             serde_json::to_string(&ServerResponse::Error {
                                 code: 1,
-                                message: "Insufficent balance, thank you for playing !".to_string()
+                                message: "Insufficent balance, thank you for playing !".to_string(),
                             })
-                            .unwrap()
-                        )
-                        .expect("Could not write to client");
-                        stream.flush().expect("Could not flush");
+                            .unwrap(),
+                        );
                     } else if let Some(table) = par_tables.get(&game) {
                         println!("Playing {} size bet on {}", bet, game);
                         let rng_iter =
@@ -96,18 +91,15 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
 
                         println!("Sending {:?}", rng_result);
 
-                        writeln!(
-                            stream,
-                            "{}",
+                        send_socket_message(
+                            &mut stream,
                             serde_json::to_string(&ServerResponse::Spin {
                                 win,
                                 balance: balance as u64,
-                                result: rng_result
+                                result: rng_result,
                             })
-                            .unwrap()
-                        )
-                        .expect("Could not write to client");
-                        stream.flush().expect("Could not flush");
+                            .unwrap(),
+                        );
                     }
                 }
             }
