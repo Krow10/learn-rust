@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::utils::format_binary;
+use anyhow::Result;
 
 type Symbol = u64;
 type Combo = Vec<Symbol>;
@@ -71,7 +72,7 @@ impl ParTable {
         }
     }
 
-    fn combo_from_string(&self, s: String, delimiter: char) -> Result<Combo, Box<dyn Error>> {
+    fn combo_from_string(&self, s: String, delimiter: char) -> Result<Combo> {
         Ok(s.split(delimiter)
             .map(|k| {
                 *self
@@ -83,7 +84,7 @@ impl ParTable {
             .collect())
     }
 
-    fn parse_symbols(&mut self, file: &str) -> Result<(), Box<dyn Error>> {
+    fn parse_symbols(&mut self, file: &str) -> Result<()> {
         const MAX_SYMBOLS: u32 = 256;
         let mut rdr = csv::Reader::from_path(file)?;
         let mut numeral_symbols = (0..=(MAX_SYMBOLS / 8) - 1).map(|x| 2u64.pow(x));
@@ -124,7 +125,7 @@ impl ParTable {
         Ok(())
     }
 
-    fn parse_paytable(&mut self, file: &str) -> Result<(), Box<dyn Error>> {
+    fn parse_paytable(&mut self, file: &str) -> Result<()> {
         let mut rdr = csv::Reader::from_path(file)?;
 
         // Assume `combo_symbols` is filled
@@ -137,7 +138,7 @@ impl ParTable {
         Ok(())
     }
 
-    fn parse_reels(&mut self, file: &str) -> Result<(), Box<dyn Error>> {
+    fn parse_reels(&mut self, file: &str) -> Result<()> {
         let mut rdr = csv::Reader::from_path(file)?;
 
         // Assume `combo_symbols` is filled
@@ -151,7 +152,7 @@ impl ParTable {
         Ok(())
     }
 
-    pub fn parse_from_csv(&mut self, files: ParTableFiles) -> Result<(), Box<dyn Error>> {
+    pub fn parse_from_csv(&mut self, files: ParTableFiles) -> Result<()> {
         self.parse_symbols(files.symbols_file.as_str())?;
         self.parse_paytable(files.paytable_file.as_str())?;
         self.parse_reels(files.reels_file.as_str())
@@ -269,9 +270,6 @@ impl Display for ParTable {
         Ok(())
     }
 }
-
-//struct TooMuchSymbolsError {}
-//struct SymbolNotFoundError {}
 
 #[derive(Debug)]
 pub enum ParTableParseError {

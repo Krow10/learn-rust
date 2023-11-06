@@ -11,12 +11,14 @@ use slot_machine::{utils::get_user_input, GAMES_FOLDER, SOCKET_PATH};
 
 use crate::app::App;
 
-use crate::app::ANIMATION_FRAMES_PER_SECONDS;
 use crate::app::EVENT_POLL_INTERVAL_MS;
-use crate::handlers::ClientHandler;
+use crate::app::FRAMES_PER_SECONDS;
 use crate::handlers::Event;
 use crate::handlers::EventHandler;
+use crate::handlers::Stream;
+use crate::handlers::StreamHandler;
 
+use crate::updates::update_info;
 use crate::updates::{update_keys, update_spin};
 use anyhow::Result;
 
@@ -39,20 +41,22 @@ fn main() -> Result<()> {
         println!("{}. {}", i + 1, p);
     });
 
-    let game_choice = &paths[get_user_input().unwrap().parse::<usize>().unwrap() - 1];
+    let game_choice = &paths[1/*get_user_input().unwrap().parse::<usize>().unwrap() - 1*/];
     println!("[+] Playing \"{}\" !", game_choice);
 
     println!("Enter bet amount:");
-    let bet = get_user_input().unwrap().parse::<usize>().unwrap();
+    let bet = 2; // get_user_input().unwrap().parse::<usize>().unwrap();
 
     let stream = UnixStream::connect(SOCKET_PATH).unwrap();
 
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
     let events = EventHandler::new(EVENT_POLL_INTERVAL_MS);
-    let client = ClientHandler::new(stream);
+    let client = StreamHandler::new(stream);
     let mut app = App::new(terminal, game_choice.to_string(), events, client);
 
+    app.state.bet = bet;
+    app.client.send_balance_message();
     app.load_symbols_mapping(
         Path::new(GAMES_FOLDER)
             .join(game_choice)
@@ -64,7 +68,7 @@ fn main() -> Result<()> {
     app.enter()?;
 
     let mut duration = Instant::now();
-    let dt = 1000.0 / ANIMATION_FRAMES_PER_SECONDS as f64;
+    let dt = 1000.0 / FRAMES_PER_SECONDS as f64;
     let mut accumulator = 0.0;
 
     while !app.should_quit {
@@ -75,29 +79,26 @@ fn main() -> Result<()> {
         duration = Instant::now();
 
         while accumulator >= dt {
-            app.tick();
+            app.render_tick();
             accumulator -= dt;
         }
 
-        // TODO: Dissociate event loop from render loop
         match app.events.next()? {
             Event::Noop => {}
             Event::Tick => {}
-            Event::SpinResult(spin, win, balance) => {}
-            Event::ServerError(err) => {}
             Event::Key(key_event) => update_keys(&mut app, key_event),
             Event::Mouse(_) => {}
             Event::Resize(_, _) => app.autoresize()?,
         };
 
         match app.client.next()? {
-            Event::Noop => {}
-            Event::Tick => {}
-            Event::SpinResult(spin, win, balance) => update_spin(&mut app, spin, win, balance),
-            Event::ServerError(err) => {}
-            Event::Key(key_event) => {}
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+            Stream::Noop => {}
+            Stream::Balance(balance) => {
+                app.state.next_balance = balance;
+                update_info(&mut app)
+            }
+            Stream::SpinResult(spin, win, balance) => update_spin(&mut app, spin, win, balance),
+            Stream::ServerError(_err) => {}
         }
     }
 

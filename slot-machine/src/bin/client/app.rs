@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fs, io, panic, path::PathBuf, time::Duration};
+use image::{io::Reader as ImageReader, GenericImageView};
+use std::{
+    collections::HashMap,
+    fs, io, panic,
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 
 use anyhow::Result;
 use crossterm::{
@@ -12,19 +18,19 @@ use serde_with::{serde_as, DisplayFromStr};
 pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stderr>>;
 
 pub const EVENT_POLL_INTERVAL_MS: u64 = 250;
-pub const ANIMATION_FRAMES_PER_SECONDS: u64 = 60;
-pub const ANIMATION_WAIT_TIME: Duration = Duration::from_secs(4);
+pub const FRAMES_PER_SECONDS: u64 = 60;
+pub const ANIMATION_WAIT_TIME: Duration = Duration::from_millis(500);
 
-pub const SPIN_BASE_SPEED: f64 = 1.2;
+pub const SPIN_BASE_SPEED: f64 = 1.8;
 pub const REEL_SPEED_FACTOR: f64 = 1.08;
 
 pub const SYMBOLS_DISPLAY_RATIO: f64 = 0.8;
 pub const SYMBOLS_DISTANCE_RATIO: f64 = 1.0;
 
 use crate::{
-    handlers::ClientHandler,
     handlers::EventHandler,
-    ui::{self, load_spin_symbol},
+    handlers::StreamHandler,
+    ui::{self},
     updates::update_animations,
     JSON_SYMBOLS_FILE,
 };
@@ -56,21 +62,46 @@ pub struct State {
     pub n_reels: u64,
     pub spin_indexes: Vec<usize>,
     pub spin_targets: Vec<(isize, bool)>,
+    pub spin_duration: Instant,
     pub bet: u64,
+    pub win: u64,
+    pub next_win: u64,
+    pub balance: u64,
+    pub next_balance: u64,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State {
+            symbols_mapping: HashMap::new(),
+            reels_symbols: vec![],
+            scroll_positions: vec![],
+            is_spinning: false,
+            n_reels: 3,
+            spin_indexes: vec![],
+            spin_targets: vec![],
+            spin_duration: Instant::now(),
+            bet: 1,
+            win: 0,
+            next_win: 0,
+            balance: 0,
+            next_balance: 0,
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct App {
     terminal: CrosstermTerminal,
     pub events: EventHandler,
-    pub client: ClientHandler,
+    pub client: StreamHandler,
     pub should_quit: bool,
     pub game: String,
     pub state: State,
 }
 
 impl App {
-    pub fn tick(&mut self) {
+    pub fn render_tick(&mut self) {
         update_animations(self);
     }
 
@@ -82,7 +113,7 @@ impl App {
         terminal: CrosstermTerminal,
         game: String,
         events: EventHandler,
-        client: ClientHandler,
+        client: StreamHandler,
     ) -> Self {
         Self {
             terminal,
@@ -90,17 +121,27 @@ impl App {
             client,
             should_quit: false,
             game,
-            state: State {
-                symbols_mapping: HashMap::new(),
-                reels_symbols: vec![],
-                scroll_positions: vec![],
-                is_spinning: false,
-                n_reels: 3,
-                spin_indexes: vec![],
-                spin_targets: vec![],
-                bet: 1,
-            },
+            state: State::default(),
         }
+    }
+
+    fn load_spin_symbol(&self, symbol: &Symbol) -> Result<SpinSymbol> {
+        let img = ImageReader::open(symbol.path.clone())?
+            .decode()
+            .expect("Could not decode image");
+
+        // TODO: Investigate if downsampling image can help performance
+        // img.resize(50, 50, image::imageops::FilterType::Gaussian);
+        Ok(SpinSymbol {
+            points: img
+                .to_luma8()
+                .enumerate_pixels()
+                .filter(|(_, _, luma)| luma.0[0] < symbol.luma_threshold)
+                .map(|(x, y, _)| (x as f64, y as f64))
+                .collect(),
+            size: (img.dimensions().0 as f64, img.dimensions().1 as f64),
+            color: symbol.color,
+        })
     }
 
     pub fn load_symbols_mapping(&mut self, path: PathBuf) {
@@ -114,7 +155,8 @@ impl App {
             let (symbol, display): (String, String) = r.unwrap();
             (
                 symbol,
-                load_spin_symbol(symbols.iter().find(|s| s.name == display).unwrap()).unwrap(),
+                self.load_spin_symbol(symbols.iter().find(|s| s.name == display).unwrap())
+                    .unwrap(),
             )
         }));
 
