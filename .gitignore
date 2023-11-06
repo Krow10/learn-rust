@@ -15,3 +15,7 @@ Cargo.lock
 
 # Sublime Text
 *.sublime*
+
+# VHS tapes and gifs
+*.tape
+*.gif

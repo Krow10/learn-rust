@@ -1,4 +1,5 @@
 pub mod par_table;
+pub mod protocol;
 pub mod utils;
 
 pub const SOCKET_PATH: &str = "/tmp/slot_machine.sock";

@@ -12,10 +12,11 @@ use ctrlc;
 use itertools::Itertools;
 use rand::Rng;
 use slot_machine::par_table::{ParTable, ParTableFiles};
+use slot_machine::protocol::{ClientCommand, ServerResponse};
 use slot_machine::{GAMES_FOLDER, MAX_BYTES_READ, SOCKET_PATH};
 
 const RATE_LIMIT_MS: u64 = 300;
-const START_BALANCE: i64 = 100;
+const START_BALANCE: i64 = 50;
 
 fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTable>>) {
     println!("Accepted client: {:?}", stream);
@@ -23,83 +24,99 @@ fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTabl
     let reader = stream.try_clone().unwrap();
     let mut reader = std::io::BufReader::new(reader).take(MAX_BYTES_READ);
 
+    // TODO: First loop to wait for session init from client (e.g. set the game, verify identity to get balance (?))
+
     loop {
         println!("Waiting for next message...");
         let mut buf = String::new();
         let bytes_read = reader.read_line(&mut buf).expect("Could not read line");
         buf = buf.trim_end().to_string();
         println!("{:-<20}", "");
-        println!("Command: {:?}", buf);
-
-        /*
-            PLAY {NAME} {BET}
-        */
+        println!("Buf: {:?}", buf);
 
         if bytes_read == 0 {
             break;
-        } else {
-            match &buf[..4] {
-                "PLAY" => {
-                    if let Some((slot_machine, bet)) = buf[5..].split_once(' ') {
-                        let bet = bet.parse::<usize>().unwrap_or(1); // Pick lowest bet on parse error
-                        if let Some(table) = par_tables.get(slot_machine) {
-                            println!("Playing {} size bet on {}", bet, slot_machine);
-                            let rng_iter =
-                                rand::thread_rng().sample_iter(rand::distributions::Uniform::from(
-                                    0..=table.reels.len() - 1, // Account for indexes, start at 0
-                                ));
-                            let rng_result: Vec<usize> = rng_iter.take(3).collect(); // In real-life applications the numbers are being constantly re-generated and picked just on input
-                            let spin_result: Vec<u64> = rng_result
+        } else if let Ok(client_command) = serde_json::from_str::<ClientCommand>(&buf) {
+            println!("Parsed command: {:?}", client_command);
+            match client_command {
+                ClientCommand::Balance => {
+                    writeln!(
+                        stream,
+                        "{}",
+                        serde_json::to_string(&ServerResponse::Balance {
+                            balance: balance as u64
+                        })
+                        .unwrap()
+                    )
+                    .expect("Could not write to client");
+                    stream.flush().expect("Could not flush");
+                }
+                ClientCommand::Play { game, bet } => {
+                    if balance <= 0 {
+                        balance = 0;
+                        writeln!(
+                            stream,
+                            "{}",
+                            serde_json::to_string(&ServerResponse::Error {
+                                code: 1,
+                                message: "Insufficent balance, thank you for playing !".to_string()
+                            })
+                            .unwrap()
+                        )
+                        .expect("Could not write to client");
+                        stream.flush().expect("Could not flush");
+                    } else if let Some(table) = par_tables.get(&game) {
+                        println!("Playing {} size bet on {}", bet, game);
+                        let rng_iter =
+                            rand::thread_rng().sample_iter(rand::distributions::Uniform::from(
+                                0..=table.reels.len() - 1, // Account for indexes, start at 0
+                            ));
+                        let rng_result: Vec<usize> = rng_iter.take(3).collect();
+                        let spin_result: Vec<u64> = rng_result
+                            .iter()
+                            .enumerate()
+                            .map(|(reel, rng)| table.reels[*rng][reel])
+                            .collect();
+                        let (_, win) = table
+                            .calculate_win(spin_result.clone(), bet)
+                            .unwrap_or((spin_result.clone(), 0));
+
+                        balance += win as i64 - (bet + 1) as i64;
+
+                        println!(
+                            "Spin: {:?}",
+                            spin_result
                                 .iter()
-                                .enumerate()
-                                .map(|(reel, rng)| table.reels[*rng][reel])
-                                .collect();
-                            let (_, win) = table
-                                .calculate_win(spin_result.clone(), bet - 1)
-                                .unwrap_or((spin_result.clone(), 0));
+                                .map(|x| table.symbol_num_mapping.get(x).unwrap())
+                                .join(" ")
+                        );
+                        println!("Win: {:+}", win);
+                        println!("\nBalance: {:+}", balance);
+                        println!("{:-<20}", "");
 
-                            balance += win as i64 - bet as i64;
+                        println!("Sending {:?}", rng_result);
 
-                            if balance < 0 {
-                                balance = 0;
-                                writeln!(
-                                    stream,
-                                    "ERR1 Insufficent balance, thank you for playing !"
-                                )
-                                .expect("Could not write to client");
-                                stream.flush().expect("Could not flush");
-                            }
-
-                            println!(
-                                "Spin: {:?}",
-                                spin_result
-                                    .iter()
-                                    .map(|x| table.symbol_num_mapping.get(x).unwrap())
-                                    .join(" ")
-                            );
-                            println!("Win: {:+}", win);
-                            println!("\nBalance: {:+}", balance);
-                            println!("{:-<20}", "");
-
-                            println!("Sending {:?}", rng_result);
-
-                            writeln!(
-                                stream,
-                                "SPIN {} {} {}",
+                        writeln!(
+                            stream,
+                            "{}",
+                            serde_json::to_string(&ServerResponse::Spin {
                                 win,
-                                balance,
-                                rng_result.iter().join(" ")
-                            )
-                            .expect("Could not write to client");
-                            stream.flush().expect("Could not flush");
-                        }
+                                balance: balance as u64,
+                                result: rng_result
+                            })
+                            .unwrap()
+                        )
+                        .expect("Could not write to client");
+                        stream.flush().expect("Could not flush");
                     }
                 }
-                _ => (),
             }
+        } else {
+            println!("Unrecognized client command: {:?}", buf);
         }
 
-        thread::sleep(Duration::from_millis(RATE_LIMIT_MS)); // Rate limiting to prevent filling stream buffer to quickly (will still break after some time)
+        // Rate limiting to prevent filling stream buffer to quickly (will still break after some time)
+        thread::sleep(Duration::from_millis(RATE_LIMIT_MS));
     }
 
     println!("Client connection terminated!");

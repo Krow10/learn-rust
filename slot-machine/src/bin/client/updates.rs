@@ -1,11 +1,23 @@
+use std::time::Instant;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::app::{App, REEL_SPEED_FACTOR, SPIN_BASE_SPEED, SYMBOLS_DISTANCE_RATIO};
+use crate::app::{
+    App, ANIMATION_WAIT_TIME, REEL_SPEED_FACTOR, SPIN_BASE_SPEED, SYMBOLS_DISTANCE_RATIO,
+};
 
 pub fn update_animations(app: &mut App) {
     if app.state.is_spinning {
-        if app.state.spin_targets.iter().all(|(_, stopped)| *stopped) {
+        if app
+            .state
+            .spin_duration
+            .elapsed()
+            .cmp(&ANIMATION_WAIT_TIME)
+            .is_ge()
+            && app.state.spin_targets.iter().all(|(_, stopped)| *stopped)
+        {
             app.state.is_spinning = false;
+            update_info(app);
         } else {
             let term_h = app.get_term_size().unwrap().height as f64;
             app.state
@@ -18,7 +30,6 @@ pub fn update_animations(app: &mut App) {
                         if *y <= -term_h {
                             *y += term_h * SYMBOLS_DISTANCE_RATIO;
 
-                            // Check if performance can be improved by just using an index to keep track of spin to display
                             app.state.spin_indexes[i] =
                                 (app.state.spin_indexes[i] + 1) % app.state.reels_symbols[i].len();
 
@@ -43,8 +54,11 @@ pub fn update_keys(app: &mut App, key_event: KeyEvent) {
             }
         }
         KeyCode::Char(' ') => {
-            if !app.state.is_spinning {
+            if app.state.balance.overflowing_sub(app.state.bet).1 {
+                // TODO: Show insufficent balance message
+            } else if !app.state.is_spinning {
                 app.state.is_spinning = true;
+                app.state.spin_duration = Instant::now();
                 app.state
                     .spin_targets
                     .iter_mut()
@@ -54,6 +68,22 @@ pub fn update_keys(app: &mut App, key_event: KeyEvent) {
                     });
                 app.client
                     .send_spin_message(app.game.to_string(), app.state.bet);
+            } else if app
+                .state
+                .spin_duration
+                .elapsed()
+                .cmp(&ANIMATION_WAIT_TIME)
+                .is_ge()
+            {
+                app.state
+                    .spin_targets
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, (target, stopped))| {
+                        *app.state.spin_indexes.get_mut(i).unwrap() = *target as usize;
+                        *app.state.scroll_positions.get_mut(i).unwrap() = (0.0, 0.0);
+                        *stopped = true;
+                    });
             }
         }
         _ => {}
@@ -61,6 +91,8 @@ pub fn update_keys(app: &mut App, key_event: KeyEvent) {
 }
 
 pub fn update_spin(app: &mut App, spin: Vec<isize>, win: u64, balance: u64) {
+    app.state.next_balance = balance;
+    app.state.next_win = win;
     app.state
         .spin_targets
         .iter_mut()
@@ -68,4 +100,12 @@ pub fn update_spin(app: &mut App, spin: Vec<isize>, win: u64, balance: u64) {
         .for_each(|(i, (target, _))| {
             *target = app.state.reels_symbols[i].len() as isize - 1 - spin[i]
         });
+}
+
+pub fn update_info(app: &mut App) {
+    app.state.balance = app.state.next_balance;
+    app.state.next_balance = app.state.balance;
+
+    app.state.win = app.state.next_win;
+    app.state.next_win = app.state.win;
 }
