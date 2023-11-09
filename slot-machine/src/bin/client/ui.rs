@@ -14,17 +14,51 @@ use ratatui::{
 
 use crate::app::{State, SYMBOLS_DISPLAY_RATIO, SYMBOLS_DISTANCE_RATIO};
 
-pub fn render(state: &State, frame: &mut Frame) {
-    let area = frame.size();
-    let main_window_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(70),
-            Constraint::Percentage(30),
-            //Constraint::Percentage(10),
-        ])
-        .split(area);
+fn render_game_info(state: &State, layout: &Rect, frame: &mut Frame) {
+    let info_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(*layout);
 
+    let info_text_option = Options {
+        font: Fonts::FontBlock,
+        // https://coolors.co/gradients
+        gradient: ["#82f4b1", "#30c67c"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+        transition_gradient: true,
+        spaceless: true,
+        ..Options::default()
+    };
+
+    for (k, text) in vec![
+        format!(
+            "Win : {}{:?}",
+            if state.win > 0 { "+" } else { "" },
+            state.win
+        ),
+        format!("Balance : {:?}", state.balance),
+    ]
+    .iter()
+    .enumerate()
+    {
+        frame.render_widget(
+            CFontTextWidget {
+                options: Options {
+                    text: text.to_string(),
+                    ..info_text_option.clone()
+                },
+                enable_text_scaling: true,
+                align_center: true,
+            },
+            *info_layout.get(k).unwrap(),
+        );
+    }
+}
+
+fn render_reels(state: &State, layout: &Rect, frame: &mut Frame) {
+    let area = frame.size();
     let slot_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
@@ -32,7 +66,7 @@ pub fn render(state: &State, frame: &mut Frame) {
                 .map(|_| Constraint::Percentage(100 / state.n_reels as u16))
                 .collect::<Vec<_>>(),
         )
-        .split(*main_window_layout.get(0).unwrap());
+        .split(*layout);
 
     // Hard to port over to a proper custom widget (separate struct) as the `Buffer` object required in the `render` method
     // doesn't support marker drawing (e.g. Braille, etc.) out-of-the-box like Canvas does. It would require setting each of
@@ -124,16 +158,22 @@ pub fn render(state: &State, frame: &mut Frame) {
             )
         }
     }
+}
 
-    let info_layout = Layout::default()
+fn render_header(state: &State, layout: &Rect, frame: &mut Frame) {
+    let header_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(*main_window_layout.get(1).unwrap());
+        .constraints([
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+            Constraint::Ratio(1, 3),
+        ])
+        .split(*layout);
 
-    let info_text_option = Options {
-        font: Fonts::FontBlock,
+    let header_text_option = Options {
+        font: Fonts::FontConsole,
         // https://coolors.co/gradients
-        gradient: ["#82f4b1", "#30c67c"]
+        gradient: ["#0061ff", "#60efff"]
             .iter()
             .map(|s| s.to_string())
             .collect(),
@@ -143,12 +183,9 @@ pub fn render(state: &State, frame: &mut Frame) {
     };
 
     for (k, text) in vec![
-        format!(
-            "Win : {}{:?}",
-            if state.win > 0 { "+" } else { "" },
-            state.win
-        ),
-        format!("Balance : {:?}", state.balance),
+        format!("Show help: [{}]", "F1"),
+        format!("{} created by {}", state.game, "Unknown"),
+        format!("Version: {}", "0.0.1"),
     ]
     .iter()
     .enumerate()
@@ -157,14 +194,29 @@ pub fn render(state: &State, frame: &mut Frame) {
             CFontTextWidget {
                 options: Options {
                     text: text.to_string(),
-                    ..info_text_option.clone()
+                    ..header_text_option.clone()
                 },
-                enable_text_scaling: true,
+                enable_text_scaling: false,
                 align_center: true,
             },
-            *info_layout.get(k).unwrap(),
+            *header_layout.get(k).unwrap(),
         );
     }
+}
+
+pub fn render(state: &State, frame: &mut Frame) {
+    let main_window_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(5),
+            Constraint::Percentage(75),
+            Constraint::Percentage(20),
+        ])
+        .split(frame.size());
+
+    render_header(state, main_window_layout.get(0).unwrap(), frame);
+    render_reels(state, main_window_layout.get(1).unwrap(), frame);
+    render_game_info(state, main_window_layout.get(2).unwrap(), frame);
 }
 
 #[derive(Debug, Clone)]
@@ -188,7 +240,7 @@ impl CFontTextWidget {
 impl Widget for CFontTextWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut stylized_text = self.stylized_text(None).vec;
-        let text_height = stylized_text.len() as u16;
+        let mut text_height = stylized_text.len() as u16;
 
         // Check that the current stylized text can fit on the screen (height check only)
         // If not, use a smaller font if text scaling is enabled
@@ -209,6 +261,7 @@ impl Widget for CFontTextWidget {
                     ..options
                 }))
                 .vec;
+            text_height = stylized_text.len() as u16;
         }
 
         stylized_text.iter().enumerate().for_each(|(j, s)| {
@@ -217,7 +270,7 @@ impl Widget for CFontTextWidget {
                 let center_shift = if self.align_center {
                     (
                         (area.width.saturating_sub(l.spans.len() as u16)) / 2,
-                        (area.height.saturating_sub(1).saturating_sub(text_height)) / 2,
+                        (area.height.saturating_sub(text_height) / 2).wrapping_add(0),
                     )
                 } else {
                     (0, 0)
