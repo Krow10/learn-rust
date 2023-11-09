@@ -67,7 +67,7 @@ pub fn update_keys(app: &mut App, key_event: KeyEvent) {
                         *stopped = false;
                     });
                 app.client
-                    .send_spin_message(app.game.to_string(), app.state.bet);
+                    .send_spin_message(app.state.game.to_string(), app.state.bet);
             } else if app
                 .state
                 .spin_duration

@@ -68,6 +68,7 @@ pub struct State {
     pub next_win: u64,
     pub balance: u64,
     pub next_balance: u64,
+    pub game: String,
 }
 
 impl Default for State {
@@ -86,6 +87,7 @@ impl Default for State {
             next_win: 0,
             balance: 0,
             next_balance: 0,
+            game: String::new()
         }
     }
 }
@@ -96,8 +98,6 @@ pub struct App {
     pub events: EventHandler,
     pub client: StreamHandler,
     pub should_quit: bool,
-    // TODO: Move to state and display the name
-    pub game: String,
     pub state: State,
 }
 
@@ -122,8 +122,10 @@ impl App {
             events,
             client,
             should_quit: false,
-            game,
-            state: State::default(),
+            state: State {
+                game,
+                ..State::default()
+            }
         }
     }
 
