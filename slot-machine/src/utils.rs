@@ -1,4 +1,7 @@
-use std::io::{self};
+use std::{
+    io::{self, Write},
+    os::unix::net::UnixStream,
+};
 
 pub fn format_binary(n: u64) -> String {
     format!(
@@ -22,4 +25,9 @@ pub fn get_user_input() -> Option<String> {
         .expect("Failed to read user input");
 
     Some(user_input.trim().to_owned())
+}
+
+pub fn send_socket_message(stream: &mut UnixStream, message: String) {
+    writeln!(stream, "{}", message).expect("Could not send message to server");
+    stream.flush().expect("Could not flush");
 }

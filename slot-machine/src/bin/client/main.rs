@@ -1,13 +1,21 @@
-use std::fs;
+/* TODO:
+- Require `gameinfo.json` for each game describing the name, author, version, help message, game color scheme, etc.
+- Logging facility for debug and error messages
+- Add sound and more visual effects for better engagment
+- Better handling of help screen (multiple key combinations, ESC / q capture (?))
+- Handle buffered input (i.e. continuously pressed keys)
+- Refactor animations and screens for easier customization
+- Show balance status on game chooser (?)
+*/
 
 use std::os::unix::net::UnixStream;
-use std::path::Path;
 
 use std::time::Instant;
 
+use app::SERVER_PING_TIMEOUT;
 use ratatui::prelude::CrosstermBackend;
 use ratatui::Terminal;
-use slot_machine::{utils::get_user_input, GAMES_FOLDER, SOCKET_PATH};
+use slot_machine::SOCKET_PATH;
 
 use crate::app::App;
 
@@ -18,7 +26,6 @@ use crate::handlers::EventHandler;
 use crate::handlers::Stream;
 use crate::handlers::StreamHandler;
 
-use crate::updates::update_info;
 use crate::updates::{update_keys, update_spin};
 use anyhow::Result;
 
@@ -30,41 +37,15 @@ mod updates;
 pub const JSON_SYMBOLS_FILE: &str = "./data/display_symbols.json";
 
 fn main() -> Result<()> {
-    let paths: Vec<String> = fs::read_dir(GAMES_FOLDER)
-        .unwrap()
-        .filter(|p| p.as_ref().unwrap().metadata().unwrap().is_dir())
-        .map(|p| p.unwrap().file_name().into_string().unwrap())
-        .collect();
-
-    println!("[x] Select a game:");
-    paths.iter().enumerate().for_each(|(i, p)| {
-        println!("{}. {}", i + 1, p);
-    });
-
-    let game_choice = &paths[1/*get_user_input().unwrap().parse::<usize>().unwrap() - 1*/];
-    println!("[+] Playing \"{}\" !", game_choice);
-
-    println!("Enter bet amount:");
-    let bet = 2; // get_user_input().unwrap().parse::<usize>().unwrap();
-
-    let stream = UnixStream::connect(SOCKET_PATH).unwrap();
-
     let backend = CrosstermBackend::new(std::io::stderr());
     let terminal = Terminal::new(backend)?;
+
     let events = EventHandler::new(EVENT_POLL_INTERVAL_MS);
+
+    let stream = UnixStream::connect(SOCKET_PATH).unwrap();
     let client = StreamHandler::new(stream);
-    let mut app = App::new(terminal, game_choice.to_string(), events, client);
 
-    app.state.bet = bet;
-    app.client.send_balance_message();
-    app.load_symbols_mapping(
-        Path::new(GAMES_FOLDER)
-            .join(game_choice)
-            .join("display.csv"),
-    );
-
-    app.load_reels(Path::new(GAMES_FOLDER).join(game_choice).join("reels.csv"));
-
+    let mut app = App::new(terminal, events, client);
     app.enter()?;
 
     let mut duration = Instant::now();
@@ -93,12 +74,17 @@ fn main() -> Result<()> {
 
         match app.client.next()? {
             Stream::Noop => {}
-            Stream::Balance(balance) => {
+            Stream::Init(balance, max_bet) => {
+                app.state.balance = balance;
                 app.state.next_balance = balance;
-                update_info(&mut app)
+                app.state.max_bet = max_bet;
+                app.state.bet = max_bet;
             }
             Stream::SpinResult(spin, win, balance) => update_spin(&mut app, spin, win, balance),
             Stream::ServerError(_err) => {}
+            Stream::Status(status) => {
+                app.state.daemon_status = status;
+            }
         }
     }
 

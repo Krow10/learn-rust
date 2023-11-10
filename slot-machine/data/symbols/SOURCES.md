@@ -8,6 +8,8 @@
 | [bar3.png](slot-machine/data/symbols/bar3.png) | Own work, [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0)
 | [bell.png](slot-machine/data/symbols/bell.png) | Designed by Freepik, https://www.freepik.com/icon/bell_3918208
 | [blank.png](slot-machine/data/symbols/blank.png) | Pixabay CC0 Content, https://pixabay.com/vectors/mark-cross-wrong-incorrect-no-39951/
+| [blank2.png](slot-machine/data/symbols/blank2.png) | Designed by Freepik, https://www.freepik.com/icon/trash_114825
+| [blazing_seven.png](slot-machine/data/symbols/blazing_seven.png) | Own work, [CC0 1.0](http://creativecommons.org/publicdomain/zero/1.0)
 | [cherry.png](slot-machine/data/symbols/cherry.png) | Designed by Freepik, https://www.freepik.com/icon/cherry_8512606
 | [lemon.png](slot-machine/data/symbols/lemon.png) | Designed by Freepik, https://www.freepik.com/icon/lemon_851659
 | [seven.png](slot-machine/data/symbols/seven.png) | Designed by Freepik, https://www.freepik.com/icon/slot-machine_497324

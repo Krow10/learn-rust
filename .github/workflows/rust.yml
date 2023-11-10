@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ "main", "project/*" ]
+    branches: [ "project/*" ]
   pull_request:
-    branches: [ "main", "project/*" ]
+    branches: [ "project/*" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -16,9 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Get subdirectory name
+      env:
+        BRANCH: ${{ github.ref_name }}
+      id: subdir
+      run: echo "::set-output name=fragment::${BRANCH##*/}"
     - name: Build
+      working-directory: ${{ steps.subdir.outputs.fragment }}
       run: cargo build --verbose
     - name: Run tests
+      working-directory: ${{ steps.subdir.outputs.fragment }}
       run: cargo test --verbose
     - name: Run format
+      working-directory: ${{ steps.subdir.outputs.fragment }}
       run: cargo fmt --all -- --check
