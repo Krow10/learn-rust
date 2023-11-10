@@ -59,6 +59,7 @@ pub struct ParTable {
     pub combo_symbols: HashMap<Symbol, Symbol>,
     pub paytable: HashMap<Combo, Vec<u64>>,
     pub reels: Vec<Combo>,
+    pub max_bet: u64,
 }
 
 impl ParTable {
@@ -69,6 +70,7 @@ impl ParTable {
             combo_symbols: HashMap::<Symbol, Symbol>::new(),
             paytable: HashMap::<Combo, Vec<u64>>::new(),
             reels: vec![],
+            max_bet: 1,
         }
     }
 
@@ -131,6 +133,11 @@ impl ParTable {
         // Assume `combo_symbols` is filled
         for result in rdr.deserialize() {
             let (combo, pays): (String, Vec<u64>) = result?;
+
+            if pays.len() as u64 > self.max_bet {
+                self.max_bet = pays.len() as u64;
+            }
+
             self.paytable
                 .insert(self.combo_from_string(combo, ' ').unwrap(), pays);
         }

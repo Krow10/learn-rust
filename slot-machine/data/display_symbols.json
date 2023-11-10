@@ -55,5 +55,17 @@
 		"path": "./data/symbols/blank.png",
 		"luma_threshold": 25,
 		"color": "#ffffff"
+	},
+	{
+		"name": "blank2",
+		"path": "./data/symbols/blank2.png",
+		"luma_threshold": 25,
+		"color": "#e9ecef"
+	},
+	{
+		"name": "blazing_seven",
+		"path": "./data/symbols/blazing_seven.png",
+		"luma_threshold": 25,
+		"color": "#efb832"
 	}
 ]

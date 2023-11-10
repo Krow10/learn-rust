@@ -1,8 +1,24 @@
 # Slot machine
 
-This document holds the research done in order to implement the slot machine simulation. It is presented in note-taking format and is subjected to frequent changes.
+## Current game state
+
+Add GIF here
+
+### Features
+
+- Choose a game to play:
+	+ Generic → a simple 2 coin game based on a 1987 real-life industry [par table](https://easy.vegas/games/slots/par_sheets/generic-1987.gif).
+	+ Blazing7 → an implementation of the popular 3 coin game ([par table](https://easy.vegas/games/slots/par_sheets/Blazing7s.pdf)).
+- Increment your bet with <kbd>j</kbd>, <kbd>+</kbd>, <kbd>↑</kbd> and decrement with <kbd>k</kbd>, <kbd>-</kbd>, <kbd>↓</kbd>.
+- Spin the reels with <kbd>SPACE</kbd> or <kbd>ENTER</kbd> ! You can also skip the animations by pressing those keys again if you want.
+- Watch your balance go up and down as you play. If it reaches zero, it's over !
+- Press <kbd>q</kbd> or <kbd>ESC</kbd> to go back to the previous screen. <kbd>CTRL</kbd> + <kbd>C</kbd> will exit the app from anywhere.
 
 ## How to play
+
+> **Note**
+>
+> This requires `Cargo` to be installed. See instructions on the [Rust](https://doc.rust-lang.org/cargo/getting-started/installation.html) website for installation.
 
 1. Clone the repo
 ```
@@ -20,26 +36,13 @@ $ cargo run --bin daemon
 ```
 $ cargo run --bin client
 ```
-5. Select a game
-```
-[x] Select a game:
-1. blaze7                                                                 
-2. generic
-$ 
-```
-6. Enter a fixed bet amount per spin, available are `[1, 2]` for **Generic** and `[1, 2, 3]` for **Blazing7** (this affects the payouts and return-to-player (RTP), see the `paytable.csv` files)
-```
-Enter bet amount:
-$ 
-```
+5. Start playing !
 
-7. Start playing !
+## Research
 
 > **Note**
 >
-> You will need a terminal font capable of displaying emojis. You can use the [`Noto Emoji`](https://fonts.google.com/noto/specimen/Noto+Emoji) family that covers most of them.
-
-## Research
+> This document holds the research done in order to implement the slot machine simulation. It is presented in note-taking format and is subjected to frequent changes. Some portions might be out-of-date.
 
 - Payout ratio
 	+ From 85% (low) to 98% (high) [2]

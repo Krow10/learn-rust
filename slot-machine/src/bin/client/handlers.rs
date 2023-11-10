@@ -3,13 +3,13 @@ use std::{
     os::unix::net::UnixStream,
     sync::mpsc,
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
 
 use anyhow::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use slot_machine::{
-    protocol::{ClientCommand, ServerResponse},
+    protocol::{ClientCommand, ServerResponse, Status},
     utils::send_socket_message,
     MAX_BYTES_READ,
 };
@@ -73,9 +73,10 @@ impl EventHandler {
 #[derive(Clone, Debug)]
 pub enum Stream {
     Noop,
-    Balance(u64),
+    Init(u64, u64),
     SpinResult(Vec<isize>, u64, u64),
     ServerError(String),
+    Status(Status),
 }
 
 #[derive(Debug)]
@@ -87,7 +88,7 @@ pub struct StreamHandler {
 impl StreamHandler {
     pub fn new(stream: UnixStream) -> Self {
         let (sender, receiver) = mpsc::channel();
-        let _stream = stream.try_clone().expect("Could not clone client socket");
+        let mut _stream = stream.try_clone().expect("Could not clone client socket");
         thread::spawn(move || {
             let reader = _stream.try_clone().unwrap();
             let mut reader = std::io::BufReader::new(reader).take(MAX_BYTES_READ);
@@ -106,8 +107,8 @@ impl StreamHandler {
                 } else if let Ok(server_command) = serde_json::from_str::<ServerResponse>(&response)
                 {
                     match server_command {
-                        ServerResponse::Balance { balance } => {
-                            let _ = sender.send(Stream::Balance(balance));
+                        ServerResponse::Init { balance, max_bet } => {
+                            let _ = sender.send(Stream::Init(balance, max_bet));
                         }
                         ServerResponse::Spin {
                             win,
@@ -123,6 +124,9 @@ impl StreamHandler {
                         ServerResponse::Error { code, message } => {
                             eprintln!("ERR{}: {}", code, message);
                             let _ = sender.send(Stream::ServerError(message));
+                        }
+                        ServerResponse::Status(status) => {
+                            let _ = sender.send(Stream::Status(status));
                         }
                     }
                 }
@@ -150,10 +154,20 @@ impl StreamHandler {
         );
     }
 
-    pub fn send_balance_message(&mut self) {
+    pub fn send_init_message(&mut self, game: String) {
         send_socket_message(
             &mut self.stream,
-            serde_json::to_string(&ClientCommand::Balance).unwrap(),
+            serde_json::to_string(&ClientCommand::Init { game }).unwrap(),
+        );
+    }
+
+    pub fn send_status_message(&mut self) {
+        send_socket_message(
+            &mut self.stream,
+            serde_json::to_string(&ClientCommand::Status {
+                clock: SystemTime::now(),
+            })
+            .unwrap(),
         );
     }
 }
