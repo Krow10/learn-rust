@@ -2,7 +2,7 @@
 
 ## Current game state
 
-Add GIF here
+![wip_ui_demo_7_optimized](https://github.com/Krow10/learn-rust/assets/23462475/efb15513-7890-4ba6-8ab6-b28e26899595)
 
 ### Features
 
