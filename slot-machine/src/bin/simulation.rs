@@ -1,11 +1,25 @@
+//! Execute simulations for ensuring that the slot game implementations are accurate.
+//!
+//! The objective is to make sure that the observed hit percentage of combos, and the resulting
+//! return to player are as close as possible (within some error boundary) to the theoretical
+//! values.
+//!
+//! It is however currently hard-coded to work only for the `generic` and `blaze7` (RTP-only) games
+//! implemented in the [project's repo](https://github.com/Krow10/learn-rust/blob/main/slot-machine/data/games).
 use itertools::Itertools;
 use rand::Rng;
 use std::collections::HashMap;
 use std::time::Instant;
 
 use slot_machine::par_table::{ParTable, ParTableFiles};
-use slot_machine::utils::clear_screen;
 
+/// Starts the simulation for the given game files.
+///
+/// For each of the `n_simulations` loop it will draw a random spin and store the resulting combo as
+/// well as update the hit ratio if the combo is winning.
+///
+/// The results are displayed directly to the console in the form of a table with variations from the
+/// hard-coded theoretical values.
 fn run_simulation(files: Vec<String>, n_simulations: u64) {
     const EXPECTED_PAYOUTS_RATIO: [f64; 3] = [0.76080, 0.85495, 0.9270];
     const EXPECTED_HIT_RATIO: f64 = 0.14212;
@@ -19,7 +33,6 @@ fn run_simulation(files: Vec<String>, n_simulations: u64) {
     let mut simulated_hit_ratio = 0.0f64;
     let mut draws = HashMap::<String, f64>::new();
 
-    clear_screen();
     println!("[*] Starting {} spin simulations", n_simulations);
 
     let n_coins = 1;
@@ -30,7 +43,8 @@ fn run_simulation(files: Vec<String>, n_simulations: u64) {
         let rng_iter = rand::thread_rng().sample_iter(rand::distributions::Uniform::from(
             0..=table.reels.len() - 1, // Account for indexes, start at 0
         ));
-        let rng_result: Vec<usize> = rng_iter.take(3).collect(); // In real-life applications the numbers are being constantly re-generated and picked just on input
+        // In real-life applications the numbers are being constantly re-generated and picked just on input
+        let rng_result: Vec<usize> = rng_iter.take(3).collect();
         let spin_result: Vec<u64> = rng_result
             .iter()
             .enumerate()
@@ -150,6 +164,7 @@ fn run_simulation(files: Vec<String>, n_simulations: u64) {
     });
 }
 
+/// Runs a million rools for the `generic` game.
 fn main() {
     run_simulation(
         vec![

@@ -4,16 +4,6 @@
 
 ![wip_ui_demo_7_optimized](https://github.com/Krow10/learn-rust/assets/23462475/efb15513-7890-4ba6-8ab6-b28e26899595)
 
-### Features
-
-- Choose a game to play:
-	+ Generic → a simple 2 coin game based on a 1987 real-life industry [par table](https://easy.vegas/games/slots/par_sheets/generic-1987.gif).
-	+ Blazing7 → an implementation of the popular 3 coin game ([par table](https://easy.vegas/games/slots/par_sheets/Blazing7s.pdf)).
-- Increment your bet with <kbd>j</kbd>, <kbd>+</kbd>, <kbd>↑</kbd> and decrement with <kbd>k</kbd>, <kbd>-</kbd>, <kbd>↓</kbd>.
-- Spin the reels with <kbd>SPACE</kbd> or <kbd>ENTER</kbd> ! You can also skip the animations by pressing those keys again if you want.
-- Watch your balance go up and down as you play. If it reaches zero, it's over !
-- Press <kbd>q</kbd> or <kbd>ESC</kbd> to go back to the previous screen. <kbd>CTRL</kbd> + <kbd>C</kbd> will exit the app from anywhere.
-
 ## How to play
 
 > **Note**
@@ -37,6 +27,29 @@ $ cargo run --bin daemon
 $ cargo run --bin client
 ```
 5. Start playing !
+
+### Features
+
+- Choose a game to play:
+	+ Generic → a simple 2 coin game based on a 1987 real-life industry [par table](https://easy.vegas/games/slots/par_sheets/generic-1987.gif).
+	+ Blazing7 → an implementation of the popular 3 coin game ([par table](https://easy.vegas/games/slots/par_sheets/Blazing7s.pdf)).
+- Increment your bet with <kbd>j</kbd>, <kbd>+</kbd>, <kbd>↑</kbd> and decrement with <kbd>k</kbd>, <kbd>-</kbd>, <kbd>↓</kbd>.
+- Spin the reels with <kbd>SPACE</kbd> or <kbd>ENTER</kbd> ! You can also skip the animations by pressing those keys again if you want.
+- Watch your balance go up and down as you play. If it reaches zero, it's over !
+- Press <kbd>q</kbd> or <kbd>ESC</kbd> to go back to the previous screen. <kbd>CTRL</kbd> + <kbd>C</kbd> will exit the app from anywhere.
+
+### Possible improvements
+
+The current state of the game is the result of about 3 weeks, part-time development as a first project to learn more about Rust. There are **lots** of way of amelioration, feature improvements, refactoring, etc. However, I've decided to move on from the project in order to not spend too much time on it and focus on other ways of learning more about the language with new projects.
+
+Feel free to fork the project (I probably won't accept changes directly to this repo, you can open issues though !) and modify it as you see fit in accordance to the [licensing terms](LICENSE). Below are some suggestions for improvements (there are a few *To-do* items in the code as well already):
+- **Client session management**: add authentication, balance and information storage about the user for all the different games, etc.
+- **Game creation tool**: facilitate game creation with a dedicated tool for managing pay tables, symbols, reels, etc.
+- **Game resources refactoring**: change the format of game resources from *CSV* files to one that is easier to manage (e.g. JSON and `serde` parsing).
+- **Support more games**: support more games and feature such as bigger spin window, multi-paylines, etc.
+- **Simulation tool**: power-up the simulation tool to be able to verify any game, calculate statistics, etc. 
+- **Better animations**: nicer animations, flashes and information messages for improving the UX.
+- **Code refactoring**: turn some pieces of code into libraries (e.g. widgets), better error and edge cases handling, robust client/server communication protocol, etc.
 
 ## Research
 

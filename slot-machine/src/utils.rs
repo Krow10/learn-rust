@@ -1,8 +1,8 @@
-use std::{
-    io::{self, Write},
-    os::unix::net::UnixStream,
-};
+//! Utility functions used across the different binaries. 
 
+use std::{io::Write, os::unix::net::UnixStream};
+
+/// Returns the binary representation of a 64bit integer grouped by bytes.
 pub fn format_binary(n: u64) -> String {
     format!(
         "{:0>8b} {:0>8b} {:0>8b} {:0>8b}",
@@ -13,20 +13,8 @@ pub fn format_binary(n: u64) -> String {
     )
 }
 
-pub fn clear_screen() {
-    print!("{esc}[2J{esc}[1;1H", esc = 27 as char); // Clear screen control sequence
-}
-
-pub fn get_user_input() -> Option<String> {
-    let mut user_input = String::new();
-
-    io::stdin()
-        .read_line(&mut user_input)
-        .expect("Failed to read user input");
-
-    Some(user_input.trim().to_owned())
-}
-
+/// Write a message to a socket stream and appending a newline character at the end.
+/// The stream is also flushed after the write operation.
 pub fn send_socket_message(stream: &mut UnixStream, message: String) {
     writeln!(stream, "{}", message).expect("Could not send message to server");
     stream.flush().expect("Could not flush");

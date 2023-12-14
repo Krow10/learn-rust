@@ -23,10 +23,11 @@ pub fn render_header(state: &mut State, layout: &Rect, frame: &mut Frame) {
     let title_text_widget = CFontTextWidget::default()
         .options(Options {
             text: "SLOTS".to_string(),
-            ..title_text_option.clone()
+            ..title_text_option
         })
         .align_center(AlignCenter::Both)
         .animated_bold_line(state.title_text_bold_line);
+
     frame.render_widget(title_text_widget, *layout);
 }
 
@@ -99,7 +100,7 @@ pub fn render_footer(state: &State, layout: &Rect, frame: &mut Frame) {
     }
 
     let status_text = Line::from(vec![
-        Span::styled("daemon status : ", default_style),
+        Span::styled("status : ", default_style),
         Span::styled(
             format!("{:?} ", state.daemon_status.server_status),
             daemon_status_style,
