@@ -1,3 +1,5 @@
+//! Server code
+
 use std::collections::HashMap;
 use std::fs;
 
@@ -20,7 +22,7 @@ const RATE_LIMIT_MS: u64 = 300;
 const START_BALANCE: i64 = 100;
 
 fn handle_client(mut stream: UnixStream, par_tables: Arc<HashMap<String, ParTable>>) {
-    let client_uptime = Instant::now(); // TODO: Get server uptime rather than per-client
+    let client_uptime = Instant::now();
     println!("Accepted client: {:?}", stream);
     let mut balance = START_BALANCE;
     let reader = stream.try_clone().unwrap();

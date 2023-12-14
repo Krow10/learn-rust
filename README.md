@@ -11,6 +11,7 @@ This repo holds the projects that I've used or developped in order to learn more
 
 - [Gray code](https://en.wikipedia.org/wiki/Gray_code)
 - [Siteswap](https://en.wikipedia.org/wiki/Siteswap)
+- [Deniable Encryption](https://en.wikipedia.org/wiki/Deniable_encryption)
 
 ## Licenses
 
